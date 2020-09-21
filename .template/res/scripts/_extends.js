@@ -1,11 +1,11 @@
-;(($)=>{
+; (($) => {
     /**
      *日期格式化
      *@method format
      *@param  "yyyy-MM-dd"
      *@return "2017-09-01"
      */
-    ;Date.prototype.format = function(fmt){
+    ; Date.prototype.format = function (fmt) {
         var o = {
             "M+": this.getMonth() + 1,
             "d+": this.getDate(),
@@ -22,59 +22,59 @@
     }
 
 
-    /**
-     *字符串序列化为json
-     *@method str2json
-     *@param  String 属性名
-     *@return Object|String
-     */
-    ;String.prototype.str2json = function(name){
-        var num = this.indexOf("?"),
-            str = this.substr(num+1),
-            arr = str.split("&"),
-            res = {};
-        for(var i=0;i < arr.length;i++){
-            num=arr[i].indexOf("=");
-            if(num>0){
-                var n=arr[i].substring(0,num),
-                    v=arr[i].substr(num+1);
-                res[n.toLowerCase()]=decodeURIComponent(v);
+        /**
+         *字符串序列化为json
+         *@method str2json
+         *@param  String 属性名
+         *@return Object|String
+         */
+        ; String.prototype.str2json = function (name) {
+            var num = this.indexOf("?"),
+                str = this.substr(num + 1),
+                arr = str.split("&"),
+                res = {};
+            for (var i = 0; i < arr.length; i++) {
+                num = arr[i].indexOf("=");
+                if (num > 0) {
+                    var n = arr[i].substring(0, num),
+                        v = arr[i].substr(num + 1);
+                    res[n.toLowerCase()] = decodeURIComponent(v);
+                }
             }
+            if (name) {
+                name = name.toLowerCase();
+                return res[name] ? res[name] : '';
+            }
+            return res
         }
-        if(name) {
-            name = name.toLowerCase();
-            return res[name] ? res[name] : '';
+
+
+        //切换页面
+        ; $.fn.render = function (el) {
+            var o = typeof el != 'string' ? el : null;
+            if (o) {
+                el = null;
+            }
+            el = !el ? 'section' : el;
+            $(el).removeClass('active');
+            this.addClass('active');
+            this.trigger('render', o);
         }
-        return res
-    }
 
-
-    //切换页面
-    ;$.fn.render = function(el){
-        var o = typeof el != 'string' ? el:null;
-        if(o){
-            el = null;
+        //表单序列化为json对象
+        ; $.fn.form2json = function () {
+            let res = {};
+            this.find('[name]').each(function () {
+                const name = $(this).attr('name');
+                let val = $(this).val();
+                res[name] = val;
+            });
+            return res;
         }
-        el = !el?'section':el;
-        $(el).removeClass('active');
-        this.addClass('active');
-        this.trigger('render', o);
-    }
 
-    //表单序列化为json对象
-    ;$.fn.form2json = function(){
-        let res = {};
-        this.find('[name]').each(function(){
-            const name = $(this).attr('name');
-            let val = $(this).val();
-            res[name] = val;
-        });
-        return res;
-    }
-    
-  
 
-    var ua = (function(){
+
+    var ua = (function () {
         var u = navigator.userAgent;
         var u2 = navigator.userAgent.toLowerCase();
         var res = { //移动终端浏览器版本信息
@@ -89,7 +89,7 @@
             iPad: u.indexOf('iPad') > -1, //是否iPad
             webApp: u.indexOf('Safari') == -1, //是否web应该程序，没有头部与底部
             iosv: u.substr(u.indexOf('iPhone OS') + 9, 3),
-            weixin:u2.match(/MicroMessenger/i) == "micromessenger",
+            weixin: u2.match(/MicroMessenger/i) == "micromessenger",
             ali: u.indexOf('AliApp') > -1,
         };
         res.weixin = res.weixin && res.mobile;
@@ -106,37 +106,37 @@
         *@method BDTJ
         *@param  String 事件名称
         */
-        BDTJ(name, val){
-            if(!window['_hmt']){
+        BDTJ(name, val) {
+            if (!window['_hmt']) {
                 console.error('please create tongji script');
                 return;
             }
-            val = !val? '':val;
+            val = !val ? '' : val;
             _hmt.push(['_trackEvent', name, val, new Date().format('yyyy-MM-dd')]);
         },
 
-        qrcodeUrl(text){
-            return "http://wandafilm.xhgai.com/service/test/qrcode.php?margin=1&text="+encodeURIComponent(text);
+        qrcodeUrl(text) {
+            return "http://wandafilm.xhgai.com/service/test/qrcode.php?margin=1&text=" + encodeURIComponent(text);
         },
 
         //文件上传
-        upload($el, callback){
-            if(!window['EXIF']){
+        upload($el, callback) {
+            if (!window['EXIF']) {
                 console.error('please import EXIF.js');
                 return;
             }
-            $el.change(function(){
+            $el.change(function () {
                 var files = $(this)[0].files;
-                if(files.length>0){
+                if (files.length > 0) {
                     layer.loading();
-                    EXIF.getData(files[0], function() {
+                    EXIF.getData(files[0], function () {
                         EXIF.getAllTags(this);
                         const url = URL.createObjectURL(files[0]);
                         let img = new Image();
                         const org = EXIF.getTag(this, 'Orientation');
-                        img.onload = function(){
+                        img.onload = function () {
                             let rotation = 0;
-                            switch(org){
+                            switch (org) {
                                 case 3:
                                     rotation = 180;
                                     break;
@@ -156,16 +156,16 @@
         },
 
         //微信分享
-        share(options){
-            if(!window['wx']){
+        share(options) {
+            if (!window['wx']) {
                 console.error('please import https://res.wx.qq.com/open/js/jweixin-1.2.0.js');
                 return;
             }
-            options = $.extend({},{
-                title:'分享标题',
-                desc:'分享描述语',
-                link:'',
-                imgUrl:'',
+            options = $.extend({}, {
+                title: '分享标题',
+                desc: '分享描述语',
+                link: '',
+                imgUrl: '',
                 trigger: function (res) {
                 },
                 cancel: function (res) {
@@ -175,21 +175,21 @@
                 },
                 fail: function (res) {
                 }
-            },options);
-    
+            }, options);
+
             window.wxShareConfig = options;
-    
+
             var info = {
                 appId: '',
                 secret: '',
                 url: window.location.href.split("#")[0]
             };
-    
+
             $.ajax({
                 type: "GET",
                 dataType: "jsonp",
                 url: "http://app.hocodo.com/webapps/weixinservice/weixinservice.php?callback=?",
-                data: {"param": JSON.stringify(info)},
+                data: { "param": JSON.stringify(info) },
                 async: false,
                 success: function (data) {
                     wx.config({
@@ -227,29 +227,29 @@
         },
 
         //进入页面自动播放
-        autoPlay(callback){
-            if(this.ua.weixin){
-                document.addEventListener("WeixinJSBridgeReady", function () { 
+        autoPlay(callback) {
+            if (this.ua.weixin) {
+                document.addEventListener("WeixinJSBridgeReady", function () {
                     callback && callback();
-                }, false); 
-                document.addEventListener("YixinJSBridgeReady", function () { 
+                }, false);
+                document.addEventListener("YixinJSBridgeReady", function () {
                     callback && callback();
-                }, false); 
-            }else{
+                }, false);
+            } else {
                 callback && callback();
             }
         },
-        
+
         //文本框失去焦点后回弹
-        afterInput(){
-            window.scrollSmoothTo = (position)=>{
+        afterInput() {
+            window.scrollSmoothTo = (position) => {
                 if (!window.requestAnimationFrame) {
-                    window.requestAnimationFrame = (callback, element) =>{
+                    window.requestAnimationFrame = (callback, element) => {
                         return setTimeout(callback, 17);
                     };
                 }
                 var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-                var step = ()=>{
+                var step = () => {
                     var distance = position - scrollTop;
                     scrollTop = scrollTop + distance / 5;
                     if (Math.abs(distance) < 1) {
@@ -263,81 +263,82 @@
             };
             window.screenTop = 0
             $('body')
-            .on('focus', 'input,textarea', function(){
-                var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-                window.screenTop = scrollTop;
-            })
-            .on('blur', 'input,textarea', function(){
-                window.scrollSmoothTo(window.screenTop);
-            })
+                .on('focus', 'input,textarea', function () {
+                    var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+                    window.screenTop = scrollTop;
+                })
+                .on('blur', 'input,textarea', function () {
+                    window.scrollSmoothTo(window.screenTop);
+                })
         },
-        music(id, videoId){
-            id = !id?'music':id;
-            $('#'+id).click(function(){
+        music(id, videoId) {
+            id = !id ? 'music' : id;
+            $('#' + id).click(function () {
                 $(this).toggleClass('playing');
-                if(videoId){
+                if (videoId) {
                     var v = document.getElementById(videoId);
-                    if(v.paused) v.play();
+                    if (v.paused) v.play();
                     else v.pause();
                 }
             })
         },
         //ajax
-        remote(a){
+        remote(a) {
             var options = $.extend({
-                type:'POST',
-                dataType:'json',
-                success(res){},
-                error(){},
-            },a);
+                type: 'POST',
+                dataType: 'json',
+                success(res) { },
+                error() { },
+            }, a);
 
             options.noLayer = a.layer === false;
 
-            options.success  = (res)=>{
-                if(!options.noLayer) layer.closeAll();
-                if(res.code == 200){
-                    a.success&&a.success(res);
-                }else{
-                    if(a.error){
+            options.success = (res) => {
+                if (!options.noLayer) layer.closeAll();
+                if (res.code == 200) {
+                    a.success && a.success(res);
+                } else {
+                    if (a.error) {
                         a.error(res)
-                    }else{
-                        layer.info(res.msg||'网络异常，请稍后重试')
+                    } else {
+                        layer.info(res.msg || '网络异常，请稍后重试')
                     }
                 }
             }
-            options.error = (res)=>{
-                layer.info(res.msg||'网络异常，请稍后重试')
+            options.error = (res) => {
+                layer.info(res.msg || '网络异常，请稍后重试')
             }
 
-            if(!options.noLayer) layer.loading();
+            if (!options.noLayer) layer.loading();
             return $.ajax(options);
         }
     }
-    
+
     window.hocodo = hocodo;
 
     (function () {
-    　　if (typeof WeixinJSBridge == "object" && typeof WeixinJSBridge.invoke == "function") {
-    　　    handleFontSize();
-    　　} else {
-        　　if (document.addEventListener) {
-        　　　　document.addEventListener("WeixinJSBridgeReady", handleFontSize, false);
-        　　} else if (document.attachEvent) {
-        　　　　document.attachEvent("WeixinJSBridgeReady", handleFontSize);
-        　　　　document.attachEvent("onWeixinJSBridgeReady", handleFontSize);
-        　　}
-        }
-        
         function handleFontSize() {
-        　　WeixinJSBridge.invoke('setFontSizeCallback', {
-        　　    'fontSize': 0
-        　　});
-        　　// 重写设置网页字体大小的事件
-        　　WeixinJSBridge.on('menu:setfont', function () {
-        　　　　WeixinJSBridge.invoke('setFontSizeCallback', {
-        　　　　　　'fontSize': 0
-        　　　　});
-        　　});
-    　　}
+            WeixinJSBridge.invoke('setFontSizeCallback', {
+                'fontSize': 0
+            });
+            // 重写设置网页字体大小的事件
+            WeixinJSBridge.on('menu:setfont', function () {
+                WeixinJSBridge.invoke('setFontSizeCallback', {
+                    'fontSize': 0
+                });
+            });
+        }
+        if (typeof WeixinJSBridge == "object" && typeof WeixinJSBridge.invoke == "function") {
+            handleFontSize();
+        } else {
+            if (document.addEventListener) {
+                document.addEventListener("WeixinJSBridgeReady", handleFontSize, false);
+            } else if (document.attachEvent) {
+                document.attachEvent("WeixinJSBridgeReady", handleFontSize);
+                document.attachEvent("onWeixinJSBridgeReady", handleFontSize);
+            }
+        }
+
+
     })();
 })(jQuery);

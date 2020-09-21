@@ -75,6 +75,12 @@
     
     //禁止放大文本(H5)
     ;(()=>{
+        var handleFontSize = ()=>{
+            WeixinJSBridge.invoke('setFontSizeCallback', { 'fontSize': 0 });
+            WeixinJSBridge.on('menu:setfont', function () {
+                WeixinJSBridge.invoke('setFontSizeCallback', { 'fontSize': 0 });
+            });
+        }
         if (typeof WeixinJSBridge == "object" && typeof WeixinJSBridge.invoke == "function") {
             handleFontSize();
         } else {
@@ -84,12 +90,6 @@
                 document.attachEvent("WeixinJSBridgeReady", handleFontSize);
                 document.attachEvent("onWeixinJSBridgeReady", handleFontSize);
             }
-        }
-        var handleFontSize = ()=>{
-            WeixinJSBridge.invoke('setFontSizeCallback', { 'fontSize': 0 });
-            WeixinJSBridge.on('menu:setfont', function () {
-                WeixinJSBridge.invoke('setFontSizeCallback', { 'fontSize': 0 });
-            });
         }
     })();
 
