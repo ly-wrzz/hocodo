@@ -155,7 +155,7 @@ var daZhong = {
                             $("#p4 .yes_prize .code_img img").attr('src','http://wandafilm.hocodo.com/service/test/qrcode.php?margin=1&text='+res.data.code);
                             $("#p4 .yes_prize .code_number").text(res.data.code);
                             layer.closeAll();
-                        },2000)
+                        },3000)
                     }else if (res.code == 502) {
                         hocodo.BDTJ('用户未中奖');
                         that.$p3.render();

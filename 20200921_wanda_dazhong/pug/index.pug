@@ -1,5 +1,5 @@
 include ../../.public/pug/mixin
-+head(title="参与一汽大众万千宠爱只为你活动", mobile=true, rem=870, import=true)
++head(title="参与一汽大众万千宠爱只为你活动", mobile=true, rem=750, import=true)
     script(src="//minisite.hocodo.com/common/layer/layer.js")
     script(src="https://res.wx.qq.com/open/js/jweixin-1.2.0.js")
     script(src="res/scripts/bundle.js?v=")
@@ -22,7 +22,7 @@ body
         .bottom_logo
             img(src='res/images/bottom_logo.png')
         .content_text
-            .title 万千宠爱只为你
+            img(src="res/images/p1_title.png").title
             button.next_page
                 img(src="res/images/p1_button.png")
             .user_protocol
@@ -69,7 +69,7 @@ body
         .bottom_logo
             img(src='res/images/bottom_logo.png')
         .content
-            .title 万千宠爱只为你
+            img(src="res/images/p2_title.png").title
             .content_form
                 form#info
                     .input_box
@@ -87,10 +87,7 @@ body
         .bottom_logo
             img(src='res/images/bottom_logo.png')
         .content
-            .title 万千宠爱 只为你
-            .subtitle 一汽-大众探岳家族&nbsp;&nbsp;探岳&nbsp;&nbsp;探岳X&nbsp;&nbsp;探岳GTE
-            .policy
-                img(src="res/images/policy.png", alt="")
+            img(src="res/images/p3_content.png", alt="")
     section#p4
         .logo
             img(src='res/images/logo.png')
@@ -126,4 +123,3 @@ body
         document.addEventListener('WeixinJSBridgeReady', function onBridgeReady() {
             WeixinJSBridge.call('hideOptionMenu');
         });
-

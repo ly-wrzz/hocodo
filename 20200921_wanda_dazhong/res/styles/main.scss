@@ -41,7 +41,7 @@ section.active{
 }
 section{
   .logo{
-    width: 8.7rem;
+    width: 100%;
     top: .72rem;
     position: absolute;
     @include center();
@@ -52,8 +52,8 @@ section{
     }
   }
   .bottom_logo{
-    width: 6.44rem;
-    bottom: .7 + .48rem;
+    width: 6.22rem;
+    bottom: .72 + .48rem;
     position: absolute;
     @include center();
     img{
@@ -70,17 +70,15 @@ section{
 section#p1{
   @include cover('p1.jpg','8.70rem 100%');
     .content_text{
-      width: 6.44rem;
+      width: 6.22rem;
       position: absolute;
       @include center();
-      top: 1.8rem;
+      top: 2.1rem;
       color: #fff;
       .title{
-        font-size: 1.08rem;
-        line-height: 1.6rem;
-        font-weight: 500;
-        width: 4.4rem;
-        text-shadow:rgba(0,0,0,0.2) 2px 2px 2px;
+        display: block;
+        width: 4.3rem;
+        height: auto;
       }
       p{
         line-height: 1;
@@ -137,7 +135,7 @@ section#p1{
     padding-bottom: .58rem;
     transition: top .5s;
     .protocol_content{
-      width: 6.44rem;
+      width: 6.22rem;
       padding: 2rem .14rem 0;
       margin: 0 auto;
       .protocol_title{
@@ -174,23 +172,19 @@ section#p1{
 section#p2{
   @include cover('p2.jpg','8.70rem 100%');
   .content{
-    width: 6.44rem;
+    width: 6.22rem;
     position: absolute;
     @include center();
-    top: 1.8rem;
+    top: 2.1rem;
     color: #fff;
     .title{
-      font-size: 1.08rem;
-      line-height: 1.6rem;
-      font-weight: 500;
-      width: 4.4rem;
-      text-shadow:rgba(0,0,0,0.2) 2px 2px 2px;
+      display: block;
       margin: 0 auto;
-      text-align: center;
+      width: 4.3rem;
     }
   }
   .content_form{
-    margin-top: .62rem;
+    margin-top: .46rem;
     .input_box{
       width: 3.3rem;
       height: .62rem;
@@ -234,28 +228,14 @@ section#p2{
 section#p3{
   @include cover('p3.jpg','8.70rem 100%');
   .content{
-    width: 6.44rem;
+    width: 6.22rem;
     position: absolute;
     @include center();
-    top: 1.86rem;
+    top: 1.88rem;
     color: #fff;
-    .title{
-      font-size: .72rem;
-      font-weight: 500;
-      text-shadow:rgba(0,0,0,0.2) 2px 2px 2px;
-      margin: 0 auto;
-    }
-    .subtitle{
-      font-size: .26rem;
-      margin-top: .22rem;
-    }
-    .policy{
-      margin-top: .22rem;
-      img{
-        display: block;
-        width: 5.48rem;
-        height: auto;
-      }
+    img{
+      display: block;
+      width: 5.32rem;
     }
   }
 }
