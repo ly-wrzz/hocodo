@@ -374,7 +374,7 @@ var daZhong = {
                     $("#p4 .yes_prize").hide();
                     $("#p4 .already_yes_prize").hide();
                 } else {
-                    layer.info(res.message);
+                    layer.info(res.msg);
                 }
             }
         });
