@@ -11,7 +11,7 @@
  *  Descript        :
  *
  *  ======================================================================================== */ 
-const daZhong = {
+var daZhong = {
     hocodoUrl: 'http://wandafilm.hocodo.com/project',
     $p1: '',
     $p2: '',
