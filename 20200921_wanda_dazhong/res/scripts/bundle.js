@@ -336,6 +336,7 @@ var daZhong = {
     $p4: '',
     urlObj: location.href.str2json(),
     init: function init() {
+        console.log(location.href.str2json());
         this.$p1 = $('#p1');
         this.$p2 = $('#p2');
         this.$p3 = $('#p3');
@@ -353,7 +354,11 @@ var daZhong = {
         hocodo.remote({
             url: that.hocodoUrl + '/index/faw_west/IsAward',
             data: {
-                openid: that.urlObj.openid
+                openid: that.urlObj.openid,
+                smscode: that.urlObj.smscode,
+                stamp: that.urlObj.stamp,
+                result: that.urlObj.result,
+                cinemaID: that.urlObj.cinemaid
             },
             success: function success(res) {
                 if (res.code == 200) {
