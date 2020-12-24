@@ -1,0 +1,86 @@
+head
+    meta(charset="utf-8")
+    meta(name="viewport",content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no")
+    title 走进骆驼湾村
+    script(src="https://res.wx.qq.com/open/js/jweixin-1.2.0.js")
+    link(rel="stylesheet" href="res/styles/reset.css")
+    link(rel="stylesheet" href="res/styles/bundle.css?v=")
+    script(src="res/scripts/jquery.min.js")
+    script(src="res/scripts/rem.750.js")
+    script(src="res/scripts/TweenMax.js")
+    script(src="tour.js?v=")
+    script(src="res/scripts/config.js")
+    script(src="res/scripts/bundle.js?v=")
+    script(src="res/scripts/pixi.js")
+    script.
+        var ver = '?v='
+        var url = 'https://minisite.hocodo.com/20201015xhvideo/'; // !!!!!!!!发布之前修改为当前项目目录
+        var shareOptions = {
+            title:'走进骆驼湾村',
+            desc:'扶贫第一站',
+            link:url+'index.html', //分享链接
+            imgUrl:url+'res/images/share.jpg', //分享图片地址
+        };
+
+        function wxHandlercallback(res){
+            hocodo.share(shareOptions); return; // !!!!!!!!发布之前删除此行
+            wx.config({
+                debug:false,
+                appId:res.appId,
+                timestamp:res.timestamp,
+                nonceStr:res.nonceStr,
+                signature:res.signature,
+                jsApiList:res.jsApiList
+            });
+            wx.ready(function(){
+                wx.onMenuShareTimeline(shareOptions);
+                wx.onMenuShareAppMessage(shareOptions);
+            })
+        }
+    script(src="https://openapi.zhongguowangshi.com/wxHandler.ashx?callback=wxHandlercallback&action=getWeixinConfig&debug=1&site=xhsh5")
+    //- script(src="https://cdn.bootcss.com/vConsole/3.3.4/vconsole.min.js")
+    //- script.
+    //-     // 初始化
+    //-     var vConsole = new VConsole();
+    //-     console.log('Hello world');
+body
+    #loading
+        .logo
+        .progress
+            .bar
+                div
+            span 0%
+    main
+        section.scene.active
+            #tips_mtk
+            #pano.on
+            #video
+            #play 播放
+            #title.on
+            #renwu
+            #zimu(style="display: none;")
+            .tips
+                span.k 开启陀螺仪
+                span.h 滑动屏幕
+            #btns
+                a(href="javascript:;") 返回
+            #gyro
+            #night
+            #next
+                a(href="javascript:;") 下一个场景
+            #index
+                .bg
+        script#html(type="text/html")
+            .content
+                .title
+                    img(src="@title.png")
+                    i.wan
+                        img(src="@light_1.png")
+                    i.cun
+                        img(src="@light_2.png")
+                    .sub
+                        img(src="@subtitle.png")
+                .logo
+                    img(src="@logo.png")
+    
+        

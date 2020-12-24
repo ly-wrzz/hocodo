@@ -1,0 +1,1149 @@
+﻿<krpano>
+	<include url="plugins/action.xml" />
+	<!-- customize skin settings: maps, gyro, webvr, thumbnails, tooltips, layout, design, ... -->
+	<skin_settings maps="false"
+	               maps_type="google"
+	               maps_bing_api_key=""
+	               maps_google_api_key=""
+	               maps_zoombuttons="false"
+	               gyro="false"
+	               webvr="false"
+	               webvr_gyro_keeplookingdirection="false"
+	               webvr_prev_next_hotspots="true"
+	               littleplanetintro="false"
+	               title="true"
+	               thumbs="true"
+	               thumbs_width="120" thumbs_height="80" thumbs_padding="10" thumbs_crop="0|40|240|160"
+	               thumbs_opened="false"
+	               thumbs_text="false"
+	               thumbs_dragging="true"
+	               thumbs_onhoverscrolling="false"
+	               thumbs_scrollbuttons="false"
+	               thumbs_scrollindicator="false"
+	               thumbs_loop="false"
+	               tooltips_buttons="false"
+	               tooltips_thumbs="false"
+	               tooltips_hotspots="false"
+	               tooltips_mapspots="false"
+	               deeplinking="false"
+	               loadscene_flags="MERGE"
+	               loadscene_blend="OPENBLEND(0.5, 0.0, 0.75, 0.05, linear)"
+	               loadscene_blend_prev="SLIDEBLEND(0.5, 180, 0.75, linear)"
+	               loadscene_blend_next="SLIDEBLEND(0.5,   0, 0.75, linear)"
+	               loadingtext="loading..."
+	               layout_width="100%"
+	               layout_maxwidth="814"
+	               controlbar_width="-24"
+	               controlbar_height="40"
+	               controlbar_offset="20"
+	               controlbar_offset_closed="-40"
+	               controlbar_overlap.no-fractionalscaling="10"
+	               controlbar_overlap.fractionalscaling="0"
+	               design_skin_images="vtourskin.png"
+	               design_bgcolor="0x2D3E50"
+	               design_bgalpha="0.8"
+	               design_bgborder="0"
+	               design_bgroundedge="1"
+	               design_bgshadow="0 4 10 0x000000 0.3"
+	               design_thumbborder_bgborder="3 0xFFFFFF 1.0"
+	               design_thumbborder_padding="2"
+	               design_thumbborder_bgroundedge="0"
+	               design_text_css="color:#FFFFFF; font-family:Arial;"
+	               design_text_shadow="1"
+	               />
+
+
+	
+	<!-- startup action - load the first scene -->
+	<action name="toggle_hotspot">
+		toggle(hotspot[get(dk)].visible);
+	</action>
+	<action name="toggle_hotspots_all">
+        for(set(i,0),i LT hotspot.count,inc(i),
+            if(hotspot[get(i)].hotspot_ctrl,
+                set(hotspot[get(i)].visible, false);
+            );
+        );
+	</action>
+	<action name="do_crop_animation" scope="local" args="framewidth, frameheight, framerate">
+		<!-- define local variables -->
+
+		calc(local.xframes, (caller.imagewidth /framewidth) BOR 0);
+		calc(local.frames, xframes * ((caller.imageheight / frameheight) BOR 0));
+		def(local.frame, integer, 0);
+		
+		<!-- set the first frame -->
+		calc(caller.crop, '0|0|' + framewidth + '|' + frameheight);
+		
+		<!-- do the animation -->
+		setinterval(calc('crop_anim_' + caller.name), calc(1.0 / framerate),
+			if(caller.loaded,
+				inc(frame);
+				if(frame GE frames, if(caller.onlastframe !== null, callwith(caller, onlastframe() ) ); set(frame,0); );
+				mod(xpos, frame, xframes);
+				div(ypos, frame, xframes);
+				Math.floor(ypos);
+				mul(xpos, framewidth);
+				mul(ypos, frameheight);
+				calc(caller.crop, xpos + '|' + ypos + '|' + framewidth + '|' + frameheight);
+			  , <!-- 否则 -->
+				<!-- stop the interval when the hotspot gets removed -->
+				clearinterval(calc('crop_anim_' + caller.name));
+			);
+		);
+	</action>
+	
+
+	<plugin name="skin_gyro" enabled="true"/>
+	
+	<plugin name="gyro" devices="html5"
+				url="%SWFPATH%/plugins/gyro2.js"
+				enabled="false"
+					onavailable="gyro_available_info();"
+				/>
+	
+	<action name="gyro_available_info">
+			set(layer[gyrobutton].visible, true);
+	</action>
+	
+	<action name="normalview">
+		js(startNormalView());
+		set(autorotate.enabled, false);
+		copy(lp_scene, xml.scene);
+		copy(lp_hlookat, view.hlookat2||view.hlookat);
+		copy(lp_vlookat, view.vlookat2||view.vlookat);
+		copy(lp_fov, view.fov2||view.fov);
+		copy(lp_fovmax, view.fovmax);
+		copy(lp_limitview, view.limitview);
+		set(view.limitview, lookto);
+		lookat(lp_hlookat, 90, 150, 1, 0, 0);
+		set(events[lp_events].onloadcomplete,
+			delayedcall(0,
+				if(lp_scene === xml.scene,
+				set(control.usercontrol, off);
+				copy(view.limitview, lp_limitview);
+				set(view.vlookatmin, null);
+				set(view.vlookatmax, null);
+
+				tween(view.hlookat|view.vlookat|view.fov|view.distortion, calc('' + lp_hlookat + '|' + lp_vlookat + '|' + lp_fov + '|' + 0.0),
+					3.0, easeInOutQuad,
+					set(control.usercontrol, all);
+					tween(view.fovmax, get(lp_fovmax));
+					<!--设置视角范围-->
+					<!-- set(view.hlookatmax, 48.99);
+					set(view.hlookatmin, -80);
+					set(view.vlookatmax, 50);
+					set(view.vlookatmin, -24.30); -->
+					<!--设置项目标志-->
+					js(endNormalView());
+					);
+				);
+			);
+		);
+	</action>
+	<action name="calc_pos_from_hfov_yaw_pitch_roll">
+		calc(deg2rad, Math.PI / 180.0);
+
+		<!-- calc the hotspot size -->
+		calc(hfov, 0.5 * (%1) * deg2rad);
+		Math.tan(hfov);
+		set(width, calc(hfov * 1000));
+		set(height, 'prop');
+
+		<!-- calc the ath, atv and rotate settings -->
+		calc(yaw, -(%2) * deg2rad);
+		calc(pitch, (%3) * deg2rad);
+		calc(roll, -(%4) * deg2rad);
+		Math.cos(ch, yaw);
+		Math.sin(sh, yaw);
+		Math.cos(ca, pitch);
+		Math.sin(sa, pitch);
+		Math.cos(cb, roll);
+		Math.sin(sb, roll);
+		Math.atan2(yaw,  calc(cb*sh - sb*sa*ch), calc(ca*ch));
+		Math.atan2(roll, calc(sb*ch - cb*sa*sh), calc(cb*ca));
+		Math.asin(pitch, calc(cb*sa*ch + sb*sh));
+		calc(ath, yaw / deg2rad);
+		calc(atv, pitch / deg2rad);
+		calc(rotate, roll / deg2rad);
+	</action>
+
+	<action name="calc_pos_from_hfov_yaw_pitch_roll">
+		calc(deg2rad, Math.PI / 180.0);
+
+		<!-- calc the hotspot size -->
+		calc(hfov, 0.5 * (%1) * deg2rad);
+		Math.tan(hfov);
+		set(width, calc(hfov * 1000));
+		set(height, 'prop');
+
+		<!-- calc the ath, atv and rotate settings -->
+		calc(yaw, -(%2) * deg2rad);
+		calc(pitch, (%3) * deg2rad);
+		calc(roll, -(%4) * deg2rad);
+		Math.cos(ch, yaw);
+		Math.sin(sh, yaw);
+		Math.cos(ca, pitch);
+		Math.sin(sa, pitch);
+		Math.cos(cb, roll);
+		Math.sin(sb, roll);
+		Math.atan2(yaw,  calc(cb*sh - sb*sa*ch), calc(ca*ch));
+		Math.atan2(roll, calc(sb*ch - cb*sa*sh), calc(cb*ca));
+		Math.asin(pitch, calc(cb*sa*ch + sb*sh));
+		calc(ath, yaw / deg2rad);
+		calc(atv, pitch / deg2rad);
+		calc(rotate, roll / deg2rad);
+	</action>
+	<action name="calc_pos_from_hfov_yaw_pitch_roll2">
+		calc(deg2rad, Math.PI / 180.0);
+
+		<!-- calc the hotspot size -->
+		calc(hfov, 0.5 * (%1) * deg2rad);
+		Math.tan(hfov);
+		set(width, calc(hfov * 1000));
+		set(height, 'prop');
+
+		<!-- calc the ath, atv and rotate settings -->
+		calc(yaw, -(%2) * deg2rad);
+		calc(pitch, (%3) * deg2rad);
+		calc(roll, -(%4) * deg2rad);
+		Math.cos(ch, yaw);
+		Math.sin(sh, yaw);
+		Math.cos(ca, pitch);
+		Math.sin(sa, pitch);
+		Math.cos(cb, roll);
+		Math.sin(sb, roll);
+		Math.atan2(yaw,  calc(cb*sh - sb*sa*ch), calc(ca*ch));
+		Math.atan2(roll, calc(sb*ch - cb*sa*sh), calc(cb*ca));
+		Math.asin(pitch, calc(cb*sa*ch + sb*sh));
+		calc(ath, yaw / deg2rad);
+		calc(atv, pitch / deg2rad);
+		calc(rotate, roll / deg2rad);
+	</action>
+	<action name="calc_pos_from_hfov_yaw_pitch_roll3">
+		calc(deg2rad, Math.PI / 180.0);
+
+		<!-- calc the hotspot size -->
+		calc(hfov, 0.5 * (%1) * deg2rad);
+		Math.tan(hfov);
+		set(width, calc(hfov * 1000));
+		set(height, 'prop');
+
+		<!-- calc the ath, atv and rotate settings -->
+		calc(yaw, -(%2) * deg2rad);
+		calc(pitch, (%3) * deg2rad);
+		calc(roll, -(%4) * deg2rad);
+		Math.cos(ch, yaw);
+		Math.sin(sh, yaw);
+		Math.cos(ca, pitch);
+		Math.sin(sa, pitch);
+		Math.cos(cb, roll);
+		Math.sin(sb, roll);
+		Math.atan2(yaw,  calc(cb*sh - sb*sa*ch), calc(ca*ch));
+		Math.atan2(roll, calc(sb*ch - cb*sa*sh), calc(cb*ca));
+		Math.asin(pitch, calc(cb*sa*ch + sb*sh));
+		calc(ath, yaw / deg2rad);
+		calc(atv, pitch / deg2rad);
+		calc(rotate, roll / deg2rad);
+	</action>
+	<action name="hotspot_animate">
+		tween(hotspot[%1].alpha, 0.0, 1.0, default, tween(hotspot[%1].alpha, 1.0, 1.0, default, hotspot_animate(%1) ) );
+	</action>
+	<action name="aaa">
+		js(test('111'))
+	</action>
+	
+	<!-- skin layout -->
+
+    <style name="skin_logo" type="text" background="false" border="false" padding="0" url="%SWFPATH%/plugins/textfield.swf" enabled="false"
+            css="padding:5px 10px;background:rgba(255,255,255,.75);border-radius:15px;line-height:1;font-size:14px;color:#111;font-weight:300;font-family:-apple-system, BlinkMacSystemFont, Helvetica;"
+    />
+	<style name="skin_css" type="text" background="false" border="false" padding="0" url="%SWFPATH%/plugins/textfield.swf" enabled="false"
+            css="padding:5px 10px;background:rgba(255,255,255,.75);border-radius:15px;line-height:1;font-size:14px;color:#111;font-weight:300;font-family:-apple-system, BlinkMacSystemFont, Helvetica;"
+    />
+	<style name="skin_cssm" type="text" background="false" border="false" padding="0" url="%SWFPATH%/plugins/textfield.swf" enabled="true"
+            css="line-height:1;padding:3px 4px;border-radius:10px;font-size:12px;background:rgba(255,233,0,.75);color:#000;font-weight:300;font-family:-apple-system, BlinkMacSystemFont, Helvetica;"
+    />
+    <style name="skin_line_cssm" type="text" background="false" border="false" padding="0" url="%SWFPATH%/plugins/textfield.swf" enabled="false"
+            css="width:0;height:0;"
+    />
+    <style name="skin_line_css" type="text" background="false" border="false" padding="0" url="%SWFPATH%/plugins/textfield.swf" enabled="false"
+            css="width:0;height:0;border-left:2px solid rgba(255,255,255,.75);height:20px;border-radius:0 0 2px 2px;"
+    />
+    <style name="skin_marks_css" type="text" x="0" y="7" background="false" border="false" url="%SWFPATH%/plugins/textfield.swf" enabled="false"
+            css="border-radius:50%;animation:shines 2s ease-in-out infinite, showmarks 0.5s ease-in-out 0.5s forwards;transform:translate3d(0,-3000px,0);background:url(images/hot-icon/marks.svg) no-repeat center center/contain;width:40px;height:50px;"
+    />
+    <style name="skin_marks_circle_css" type="text" x="0" y="4" background="false" border="false" url="%SWFPATH%/plugins/textfield.swf" enabled="false"
+            css="animation:showmarks 0.5s ease-in-out 0.5s forwards;transform:translate3d(0,-2982px,0);width:32px;height:32px;border:1px solid #f80;border-radius:50%;line-height:32px;font-size:18px;color:#fff;padding:0;text-align:center;font-weight:bold;"
+    />
+    
+    <style name="skin_xufang_marks_click" type="text" x="0" y="7" background="false" border="false" url="%SWFPATH%/plugins/textfield.swf" enabled="false"
+            css="width:32px;height:38px;"
+    />
+    <style name="skin_xufang_marks" type="text" x="0" y="5" background="false" border="false" url="%SWFPATH%/plugins/textfield.swf" enabled="false"
+            css="padding:5px 10px;background:rgba(0, 234, 255, .75);border-radius:15px;line-height:1;font-size:16px;color:#fff;"
+    />
+
+    <style name="skin_xufang_css" distorted="false" zoom="true"  url="%SWFPATH%/images/hot-icon/new_spotd6_gif.png" onloaded="do_crop_animation(128,128, 50);" scale=".8" />
+
+    <skin_line_css css="width:0;height:0;border-left:2px solid rgba(255,255,255,.85);height:26px;" />
+
+
+    <style name="layer_ctrl" keep="false" align="rightbottom" x="11" width="55" height="20" alpha=".75" background="true" backgroundcolor="0xcffffff" border="0" roundedge="10"  vcenter="true" url="%SWFPATH%/plugins/textfield.swf" css="font-size:10px;color:#111;text-align:center;" />
+    
+	<style name="test" url="%SWFPATH%/images/kv.jpg"  onloaded="do_crop_animation(128,128, 50);" scale=".8" />
+
+
+	
+    <style name="room" type="text" background="false" border="false" padding="0"/>
+	<room css="width:0;height:0;border-left:2px solid rgba(0,0,0,.75);height:26px;color:#fff;" />
+	<style name="room_css" type="text" background="false" border="false" padding="0"
+            css="padding:5px 10px;background:rgba(0,0,0,.75);border-radius:15px;line-height:1;font-size:18px;color:#fff;font-weight:300;font-family:-apple-system, BlinkMacSystemFont, Helvetica;"
+    />
+	
+	<action name="mytest">
+		screentosphere(mouse.x, mouse.y, toh, tov);
+		js(hideControls());
+		jscall(calc('console.log("'+toh+'")'));
+		jscall(calc('console.log("'+tov+'")'));
+	</action>
+
+	<events 
+		onclick="mytest();"
+	/>
+
+
+	<action name="initview">
+		tween(view.hlookat, 363, 2.5, easeInOutQuad);
+		tween(view.vlookat, 30, 2.5, easeInOutQuad);
+		tween(view.fov,     90,  2.5, easeInOutQuad,,set(view.fovmax,140));
+		tween(view.fisheye, 0.0, 2.5, easeInOutQuad,skin_view_normal);
+	</action>
+
+	<events onloadcomplete="js(onSceneLoaded());"/>
+
+	<scene name="day" onstart="js(firstSceneLoaded())">
+		<view hlookat="-12" vlookat="40"
+		hlookat2="-12" vlookat2="40"
+		 fovtype="MFOV" fov="115" fov2="115" maxpixelzoom="2.0" fovmin="80" fovmax="150" limitview="auto" />
+		<!-- <view stereographic="true"
+              fov="150"
+			  fov2="150"
+              fovtype="MFOV"
+              hlookat="90"
+              vlookat="90"
+              hlookat2="-150"
+              vlookat2="-19"
+			  /> -->
+		<preview url="panos/vr_budalagong.tiles/preview.jpg" />
+        <image type="CUBE" multires="true" tilesize="512">
+			<level tiledimagewidth="3200" tiledimageheight="3200">
+				<cube url="panos/vr_budalagong.tiles/%s/l3/%v/l3_%s_%v_%h.jpg" />
+			</level>
+			<level tiledimagewidth="1536" tiledimageheight="1536">
+				<cube url="panos/vr_budalagong.tiles/%s/l2/%v/l2_%s_%v_%h.jpg" />
+			</level>
+			<level tiledimagewidth="768" tiledimageheight="768">
+				<cube url="panos/vr_budalagong.tiles/%s/l1/%v/l1_%s_%v_%h.jpg" />
+			</level>
+		</image>
+		<hotspot name="poi1" type="text" style="room_css" atv="14" ath="-42" html="一号院11" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s1_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi1]" style="room" />
+		<hotspot name="poi12" style="skin_logo" atv="18" ath="-42" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s1_1'))" />
+		
+		<hotspot name="poi2" type="text" style="room_css" atv="36" ath="-12"  html="二号院22" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s2_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi2]" style="room" />
+		<hotspot name="poi22" style="skin_logo" atv="40" ath="-12" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s2_1'))" />
+		
+		<hotspot name="poi3" type="text" style="room_css" atv="61" ath="25" html="村落主干道33" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s3_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi3]" style="room" />
+		<hotspot name="poi32" style="skin_logo" atv="65" ath="25" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s3_1'))" />
+		
+		<hotspot name="poi4" type="text" style="room_css" atv="18" ath="-20" html="村落旁道路44" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s4_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi4]" style="room" />
+		<hotspot name="poi42" style="skin_logo" atv="22" ath="-20" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s4_1'))" />
+		
+		<hotspot name="poi5" type="text" style="room_css" atv="63" ath="161" html="蘑菇种植基地55" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s5_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi5]" style="room" />
+		<hotspot name="poi52" style="skin_logo" atv="67" ath="161" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s5_1'))" />
+		
+		<hotspot name="poi6" type="text" style="room_css" atv="64" ath="-120" html="666" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s6_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi6]" style="room" />
+		<hotspot name="poi62" style="skin_logo" atv="68" ath="-120" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s6_1'))" />
+	
+		<hotspot name="poi7" type="text" style="room_css" atv="64" ath="-96" html="777" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s7_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi7]" style="room" />
+		<hotspot name="poi72" style="skin_logo" atv="68" ath="-96" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s7_1'))" />
+	</scene>
+
+	<scene name="back">
+		<view hlookat="-12" vlookat="40" fovtype="MFOV" fov="115" maxpixelzoom="2.0" fovmin="80" fovmax="150" limitview="auto" />
+		
+		<preview url="panos/vr_budalagong.tiles/preview.jpg" />
+        <image type="CUBE" multires="true" tilesize="512">
+			<level tiledimagewidth="3200" tiledimageheight="3200">
+				<cube url="panos/vr_budalagong.tiles/%s/l3/%v/l3_%s_%v_%h.jpg" />
+			</level>
+			<level tiledimagewidth="1536" tiledimageheight="1536">
+				<cube url="panos/vr_budalagong.tiles/%s/l2/%v/l2_%s_%v_%h.jpg" />
+			</level>
+			<level tiledimagewidth="768" tiledimageheight="768">
+				<cube url="panos/vr_budalagong.tiles/%s/l1/%v/l1_%s_%v_%h.jpg" />
+			</level>
+		</image>
+
+		<hotspot name="poi1" type="text" style="room_css" atv="14" ath="-42" html="一号院11" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s1_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi1]" style="room" />
+		<hotspot name="poi12" style="skin_logo" atv="18" ath="-42" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s1_1'))" />
+		
+		<hotspot name="poi2" type="text" style="room_css" atv="36" ath="-12"  html="二号院22" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s2_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi2]" style="room" />
+		<hotspot name="poi22" style="skin_logo" atv="40" ath="-12" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s2_1'))" />
+		
+		<hotspot name="poi3" type="text" style="room_css" atv="61" ath="25" html="村落主干道33" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s3_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi3]" style="room" />
+		<hotspot name="poi32" style="skin_logo" atv="65" ath="25" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s3_1'))" />
+		
+		<hotspot name="poi4" type="text" style="room_css" atv="18" ath="-20" html="村落旁道路44" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s4_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi4]" style="room" />
+		<hotspot name="poi42" style="skin_logo" atv="22" ath="-20" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s4_1'))" />
+		
+		<hotspot name="poi5" type="text" style="room_css" atv="63" ath="161" html="蘑菇种植基地55" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s5_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi5]" style="room" />
+		<hotspot name="poi52" style="skin_logo" atv="67" ath="161" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s5_1'))" />
+		
+		<hotspot name="poi6" type="text" style="room_css" atv="64" ath="-120" html="666" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s6_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi6]" style="room" />
+		<hotspot name="poi62" style="skin_logo" atv="68" ath="-120" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s6_1'))" />
+	
+		<hotspot name="poi7" type="text" style="room_css" atv="64" ath="-96" html="777" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s7_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[poi7]" style="room" />
+		<hotspot name="poi72" style="skin_logo" atv="68" ath="-96" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s7_1'))" />
+	</scene>
+
+	<scene name="s1_1" isvideopano="true" title="1_1院门口延时">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a5756e35285890807743979838/YYhfI38A0iUA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a5756e35285890807743979838/YYhfI38A0iUA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a5756e35285890807743979838/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a5756e35285890807743979838/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		
+		<hotspot name="rooms111" type="text" style="room_css" atv="-0.3" ath="19" html="航拍全景" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene())"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms111]" style="room" />
+		<hotspot name="rooms1112" style="skin_logo" atv="3.7" ath="19" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene())" />
+
+		<hotspot name="rooms112" type="text" style="room_css" atv="-0.3" ath="19" html="进入院内" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s1_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="3.7" ath="19" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s1_2'))" />
+	</scene>
+	<scene name="s1_2" isvideopano="true" title="1_2院内对话">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a5757205285890807743979853/vMUJNf9pJb8A.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a5757205285890807743979853/vMUJNf9pJb8A.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a5757205285890807743979853/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a5757205285890807743979853/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="84" html="进入屋内" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s1_3'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="84" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s1_3'))" />
+	
+		<hotspot name="rooms113" type="text" style="room_css" atv="-3.9" ath="-22" html="出院" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s1_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms113]" style="room" />
+		<hotspot name="rooms1132" style="skin_logo" atv="0.1" ath="-22" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s1_1'))" />
+	
+	</scene>
+	<scene name="s1_3" isvideopano="true" title="1_3院内转到屋内">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/010db0d65285890807749653164/A8GdUUxHT7gA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/010db0d65285890807749653164/A8GdUUxHT7gA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/010db0d65285890807749653164/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/010db0d65285890807749653164/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-3.4" ath="-36" html="院子" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s1_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="0.6" ath="-36" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s1_2'))" />
+	</scene>
+
+	<scene name="s2_1" isvideopano="true" title="2_1院门口对话延时">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a575abd5285890807743979904/IaH81JoTBoUA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a575abd5285890807743979904/IaH81JoTBoUA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a575abd5285890807743979904/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a575abd5285890807743979904/coverBySnapshot/coverBySnapshot_10_0.jpg"
+			
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms111" type="text" style="room_css" atv="-0.3" ath="19" html="航拍全景" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene())"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms111]" style="room" />
+		<hotspot name="rooms1112" style="skin_logo" atv="3.7" ath="19" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene())" />
+
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="42.8" html="进入屋内" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s2_3'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="42.8" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s2_3'))" />
+	</scene>
+	<scene name="s2_2" isvideopano="true" title="2_2院内对话">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a575ae05285890807743979916/fbhIQKOXP4kA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a575ae05285890807743979916/fbhIQKOXP4kA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a575ae05285890807743979916/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a575ae05285890807743979916/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="屋内" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s2_3'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s2_3'))" />
+	</scene>
+	<scene name="s2_3" isvideopano="true" title="2_3屋内对话">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a575b425285890807743979945/0s9EWO6JxfAA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a575b425285890807743979945/0s9EWO6JxfAA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a575b425285890807743979945/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a575b425285890807743979945/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="院子" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s2_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s2_2'))" />
+	</scene>
+
+	<scene name="s3_1" isvideopano="true" title="3_1主干道  村委大门口对话">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/010db5185285890807749653265/IxAL7t2VHwEA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/010db5185285890807749653265/IxAL7t2VHwEA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/010db5185285890807749653265/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/010db5185285890807749653265/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		
+		<hotspot name="rooms111" type="text" style="room_css" atv="-0.3" ath="19" html="航拍全景" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene())"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms111]" style="room" />
+		<hotspot name="rooms1112" style="skin_logo" atv="3.7" ath="19" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene())" />
+
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="戏台" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s3_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s3_2'))" />
+	
+		<hotspot name="rooms113" type="text" style="room_css" atv="-6.6" ath="-126" html="小吃街" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s3_3'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms113]" style="room" />
+		<hotspot name="rooms1132" style="skin_logo" atv="-2.6" ath="-126" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s3_3'))" />
+		
+		<hotspot name="rooms114" type="text" style="room_css" atv="-6.6" ath="-96" html="超市" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s3_4'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms114]" style="room" />
+		<hotspot name="rooms1142" style="skin_logo" atv="-2.6" ath="-96" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s3_4'))" />
+	</scene>
+	<scene name="s3_2" isvideopano="true" title="3_2戏台 丰收大会">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/010db57e5285890807749653298/5yEvrFg7GggA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/010db57e5285890807749653298/5yEvrFg7GggA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/010db57e5285890807749653298/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/010db57e5285890807749653298/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="主干道" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s3_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s3_1'))" />
+	</scene>
+	<scene name="s3_3" isvideopano="true" title="3_3小吃街夜景固定">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a645da95285890807743980010/gWlTY5yHW6MA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a645da95285890807743980010/gWlTY5yHW6MA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a645da95285890807743980010/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a645da95285890807743980010/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="主干道" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s3_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s3_1'))" />
+	
+
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="详情" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s3_5'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s3_5'))" />
+	
+	
+	</scene>
+	<scene name="s3_4" isvideopano="true" title="3_4返乡创业青年超市">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/010db8f35285890807749653332/IWVT6xwzhzoA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/010db8f35285890807749653332/IWVT6xwzhzoA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/010db8f35285890807749653332/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/010db8f35285890807749653332/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="主干道" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s3_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s3_1'))" />
+	</scene>
+	<scene name="s3_5" isvideopano="true" title="3_5小吃街夜景长距离移动">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a645e545285890807743980066/eOqCkvi8SDQA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a645e545285890807743980066/eOqCkvi8SDQA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a645e545285890807743980066/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a645e545285890807743980066/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="主干道" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s3_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s3_1'))" />
+	</scene>
+
+	<scene name="s4_1" isvideopano="true" title="4_1村落旁道路">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/010dbcd65285890807749653407/ulnhQW4oWacA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/010dbcd65285890807749653407/ulnhQW4oWacA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/010dbcd65285890807749653407/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/010dbcd65285890807749653407/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		
+		<hotspot name="rooms111" type="text" style="room_css" atv="-0.3" ath="19" html="航拍全景" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene())"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms111]" style="room" />
+		<hotspot name="rooms1112" style="skin_logo" atv="3.7" ath="19" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene())" />
+
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="村民服务中心" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s4_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s4_2'))" />
+		
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="农家小院" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s4_3'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s4_3'))" />
+	
+	</scene>
+	<scene name="s4_2" isvideopano="true" title="4_2村民服务中心院内对话">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a64620c5285890807743980121/hwZAUu1wXDgA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a64620c5285890807743980121/hwZAUu1wXDgA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a64620c5285890807743980121/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a64620c5285890807743980121/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="进屋" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s4_3'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s4_3'))" />
+	</scene>
+	<scene name="s4_3" isvideopano="true" title="4_3农家小院内对话">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/010dbd955285890807749653460/Q481mQzh0O4A.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/010dbd955285890807749653460/Q481mQzh0O4A.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/010dbd955285890807749653460/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/010dbd955285890807749653460/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="院子" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s4_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s4_2'))" />
+	</scene>
+
+	<scene name="s5_1" isvideopano="true" title="5_1棚外标语航拍">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a6466105285890807743980206/RJnolWJLiAgA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a6466105285890807743980206/RJnolWJLiAgA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a6466105285890807743980206/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a6466105285890807743980206/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		
+		<hotspot name="rooms111" type="text" style="room_css" atv="-0.3" ath="19" html="航拍全景" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene())"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms111]" style="room" />
+		<hotspot name="rooms1112" style="skin_logo" atv="3.7" ath="19" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene())" />
+
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="棚内" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s5_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s5_2'))" />
+		
+	</scene>
+	<scene name="s5_2" isvideopano="true" title="5_2棚内低机位滑轨移动">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/35d5fd685285890807750507412/iMCOiAQiaWYA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/35d5fd685285890807750507412/iMCOiAQiaWYA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/35d5fd685285890807750507412/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/35d5fd685285890807750507412/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="高机位" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s5_3'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s5_3'))" />
+		
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-126" html="棚外" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s5_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-126" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s5_1'))" />
+	</scene>
+	<scene name="s5_3" isvideopano="true" title="5_3棚内高机位固定">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/35d5fd8c5285890807750507425/sFD4RRe416wA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/35d5fd8c5285890807750507425/sFD4RRe416wA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/35d5fd8c5285890807750507425/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/35d5fd8c5285890807750507425/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="低机位" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s5_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s5_2'))" />
+	</scene>
+
+	<scene name="s6_1" isvideopano="true" title="6_1院口空镜">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/35d5fdce5285890807750507445/RNz51dNeRo0A.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/35d5fdce5285890807750507445/RNz51dNeRo0A.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/35d5fdce5285890807750507445/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/35d5fdce5285890807750507445/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		
+		<hotspot name="rooms111" type="text" style="room_css" atv="-0.3" ath="19" html="航拍全景" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene())"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms111]" style="room" />
+		<hotspot name="rooms1112" style="skin_logo" atv="3.7" ath="19" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene())" />
+
+		<hotspot name="rooms112" type="text" style="room_css" atv="-17" ath="0.6" html="院内" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s6_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-13" ath="0.6" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s6_2'))" />
+	</scene>
+	<scene name="s6_2" isvideopano="true" title="6_2院内空镜">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a6466b75285890807743980258/nKM4lej8VxcA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a6466b75285890807743980258/nKM4lej8VxcA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a6466b75285890807743980258/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a6466b75285890807743980258/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-3" ath="148" html="院外" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s6_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="1" ath="148" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s6_1'))" />
+		
+		<hotspot name="rooms113" type="text" style="room_css" atv="-8.6" ath="-32" html="会议室" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s6_3'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms113]" style="room" />
+		<hotspot name="rooms1132" style="skin_logo" atv="-4.6" ath="-32" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s6_3'))" />
+	
+	</scene>
+	<scene name="s6_3" isvideopano="true" title="6_3会议室内独白">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a6466f15285890807743980270/Cc70lFbfFTUA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a6466f15285890807743980270/Cc70lFbfFTUA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a6466f15285890807743980270/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a6466f15285890807743980270/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-1.4" ath="-102" html="院子" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s6_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="2.6" ath="-102" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s6_2'))" />
+	</scene>
+
+	<scene name="s7_1" isvideopano="true" title="7_1院口街道空镜">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/35d6018c5285890807750507506/Ix253gvLiL4A.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/35d6018c5285890807750507506/Ix253gvLiL4A.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/35d6018c5285890807750507506/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/35d6018c5285890807750507506/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		
+		<hotspot name="rooms111" type="text" style="room_css" atv="-0.3" ath="19" html="航拍全景" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene())"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms111]" style="room" />
+		<hotspot name="rooms1112" style="skin_logo" atv="3.7" ath="19" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene())" />
+
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="进屋" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s7_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s7_2'))" />
+	</scene>
+	<scene name="s7_2" isvideopano="true" title="7_2院内">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a646a535285890807743980308/v31ialZoljkA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a646a535285890807743980308/v31ialZoljkA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a646a535285890807743980308/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a646a535285890807743980308/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="院外" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s7_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s7_1'))" />
+
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="进屋" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s7_3'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s7_3'))" />
+	</scene>
+	<scene name="s7_3" isvideopano="true" title="7_3屋内对话">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+				url.html5="%SWFPATH%/plugins/videoplayer.js"
+				url.flash="%SWFPATH%/plugins/videoplayer.swf"
+				pausedonstart="false"
+				loop="false"
+				volume="1.0"
+				onvideoready="js(test('ready'));skin_showloading(false);"
+				onvideoplay="js(test('play'))"
+        		onvideocomplete="js(test('ended'))"
+				videourl.ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a646a965285890807743980329/t3DVDSD1nSMA.mp4"
+				videourl.no-ios="http://1254086875.vod2.myqcloud.com/e0e86a70vodcq1254086875/3a646a965285890807743980329/t3DVDSD1nSMA.mp4"
+				posterurl.ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a646a965285890807743980329/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				posterurl.no-ios="http://1254086875.vod2.myqcloud.com/b7d25818vodtranscq1254086875/3a646a965285890807743980329/coverBySnapshot/coverBySnapshot_10_0.jpg"
+				/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="DFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+		<hotspot name="rooms112" type="text" style="room_css" atv="-6.6" ath="-26" html="院内" distorted="false" zoom="true" visible="true" enabled="true" onclick="js(LoadScene('s7_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[rooms112]" style="room" />
+		<hotspot name="rooms1122" style="skin_logo" atv="-2.6" ath="-26" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="true"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s7_2'))" />
+	</scene>
+</krpano>

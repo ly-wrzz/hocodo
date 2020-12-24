@@ -1,0 +1,195 @@
+﻿<krpano version="1.20.8" title="Virtual Tour">
+
+	<include url="plugins/action.xml" />
+	<skin_settings maps="false"
+		maps_type="google"
+		maps_bing_api_key=""
+		maps_google_api_key=""
+		maps_zoombuttons="false"
+		maps_loadonfirstuse="true"
+		gyro="true"
+		gyro_keeplookingdirection="false"
+		webvr="false"
+		webvr_keeplookingdirection="true"
+		webvr_prev_next_hotspots="true"
+		autotour="false"
+		littleplanetintro="false"
+		followmousecontrol="false"
+		title="true"
+		thumbs="true"
+		thumbs_width="120" thumbs_height="80" thumbs_padding="10" thumbs_crop="0|40|240|160"
+		thumbs_opened="false"
+		thumbs_text="false"
+		thumbs_dragging="true"
+		thumbs_onhoverscrolling="false"
+		thumbs_scrollbuttons="false"
+		thumbs_scrollindicator="false"
+		thumbs_loop="false"
+		tooltips_buttons="false"
+		tooltips_thumbs="false"
+		tooltips_hotspots="false"
+		tooltips_mapspots="false"
+		deeplinking="false"
+		loadscene_flags="MERGE"
+		loadscene_blend="OPENBLEND(0.5, 0.0, 0.75, 0.05, linear)"
+		loadscene_blend_prev="SLIDEBLEND(0.5, 180, 0.75, linear)"
+		loadscene_blend_next="SLIDEBLEND(0.5,   0, 0.75, linear)"
+		loadingtext="loading..."
+		layout_width="100%"
+		layout_maxwidth="814"
+		controlbar_width="-24"
+		controlbar_height="40"
+		controlbar_offset="20"
+		controlbar_offset_closed="-40"
+		controlbar_overlap.no-fractionalscaling="10"
+		controlbar_overlap.fractionalscaling="0"
+		design_skin_images="vtourskin.png"
+		design_bgcolor="0x2D3E50"
+		design_bgalpha="0.8"
+		design_bgborder="0"
+		design_bgroundedge="1"
+		design_bgshadow="0 4 10 0x000000 0.3"
+		design_thumbborder_bgborder="3 0xFFFFFF 1.0"
+		design_thumbborder_padding="2"
+		design_thumbborder_bgroundedge="0"
+		design_text_css="color:#FFFFFF; font-family:Arial;"
+		design_text_shadow="1"
+		/>
+
+
+
+	<action name="startup" autorun="onstart">
+		if(startscene === null OR !scene[get(startscene)], copy(startscene,scene[0].name); );
+		loadscene(get(startscene), null, MERGE);
+		if(startactions !== null, startactions() );
+	</action>
+
+    <style name="skin_logo" type="text" background="false" border="false" padding="0" url="%SWFPATH%/plugins/textfield.swf" enabled="false"
+            css="padding:5px 10px;background:rgba(255,255,255,.75);border-radius:15px;line-height:1;font-size:14px;color:#111;font-weight:300;font-family:-apple-system, BlinkMacSystemFont, Helvetica;"
+    />
+	<style name="skin_css" type="text" background="false" border="false" padding="0" url="%SWFPATH%/plugins/textfield.swf" enabled="false"
+            css="padding:5px 10px;background:rgba(255,255,255,.75);border-radius:15px;line-height:1;font-size:14px;color:#111;font-weight:300;font-family:-apple-system, BlinkMacSystemFont, Helvetica;"
+    />
+	<style name="room" type="text" background="false" border="false" padding="0"/>
+	<room css="width:0;height:0;border-left:2px solid rgba(0,0,0,.75);height:26px;color:#fff;" />
+	<style name="room_css" type="text" background="false" border="false" padding="0"
+            css="padding:5px 10px;background:rgba(48,135,230,1);border:2px solid #fff;border-radius:18px;line-height:1;font-size:24px;color:#fff;font-weight:300;font-family:-apple-system, BlinkMacSystemFont, Helvetica;"
+    />
+	
+	<action name="do_crop_animation" scope="local" args="framewidth, frameheight, framerate">
+		<!-- define local variables -->
+
+		calc(local.xframes, (caller.imagewidth /framewidth) BOR 0);
+		calc(local.frames, xframes * ((caller.imageheight / frameheight) BOR 0));
+		def(local.frame, integer, 0);
+		
+		<!-- set the first frame -->
+		calc(caller.crop, '0|0|' + framewidth + '|' + frameheight);
+		
+		<!-- do the animation -->
+		setinterval(calc('crop_anim_' + caller.name), calc(1.0 / framerate),
+			if(caller.loaded,
+				inc(frame);
+				if(frame GE frames, if(caller.onlastframe !== null, callwith(caller, onlastframe() ) ); set(frame,0); );
+				mod(xpos, frame, xframes);
+				div(ypos, frame, xframes);
+				Math.floor(ypos);
+				mul(xpos, framewidth);
+				mul(ypos, frameheight);
+				calc(caller.crop, xpos + '|' + ypos + '|' + framewidth + '|' + frameheight);
+			  , <!-- 否则 -->
+				<!-- stop the interval when the hotspot gets removed -->
+				clearinterval(calc('crop_anim_' + caller.name));
+			);
+		);
+	</action>
+	
+		<action name="gyro_available_info">
+				set(layer[gyrobutton].visible, true);
+		</action>
+	<style name="skin_logo2" type="text" background="false" border="false" padding="0" url="%SWFPATH%/plugins/textfield.swf" enabled="false"
+            css="padding:5px 10px;background:rgba(255,255,255,.75);border-radius:15px;line-height:1;font-size:14px;color:#111;font-weight:300;font-family:-apple-system, BlinkMacSystemFont, Helvetica;"
+    />
+	<scene name="video" isvideopano="true" title="1_1院门口延时">
+		<!-- include the videoplayer plugin -->
+		<plugin name="video"
+			url.html5="%SWFPATH%/plugins/videoplayer.1.20.6.js"
+			url.flash="%SWFPATH%/plugins/videoplayer.swf"
+			pausedonstart="false"
+			autoresume="true"
+			autopause="true"
+			autoplay="false"
+			loop="false"
+			volume="1.0"
+			videourl=""
+			posterurl=""
+			onvideoready="skin_showloading(false);"
+			onvideoplay="js(test('play'))"
+			onvideocomplete="js(test('ended'))"
+			/>
+
+		<plugin name="gyro2" devices="html5"
+			url="%SWFPATH%/plugins/gyro2.js"
+			enabled="false"
+			onavailable="gyro_available_info();"
+		/>
+
+		<!-- use the videoplayer plugin as panoramic image source -->
+		<image>
+			<sphere url="plugin:video" />
+		</image>
+		<!-- set the default view -->
+		<view hlookat="0" vlookat="0" fovtype="MFOV" fov="130" fovmin="75" fovmax="150" distortion="0.0" />
+	
+		<hotspot name="s1_1" type="text" style="room_css" atv="-0.3" ath="19" html="进入院内" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s1_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[s1_1]" style="room" />
+		<hotspot name="s1_12" style="skin_logo" atv="3.7" ath="19" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s1_2'))" />
+	
+		<hotspot name="s1_2" type="text" style="room_css" atv="-6.6" ath="84" html="进入屋内" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s1_3'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[s1_2]" style="room" />
+		<hotspot name="s1_22" style="skin_logo" atv="-2.6" ath="84" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s1_3'))" />
+	
+		<hotspot name="s2_1" type="text" style="room_css" atv="-6.6" ath="42.8" html="进入屋内" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s2_3'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[s2_1]" style="room" />
+		<hotspot name="s2_12" style="skin_logo" atv="-2.6" ath="42.8" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s2_3'))" />
+	
+		<hotspot name="s2_3" type="text" style="room_css" atv="-2.9" ath="69" html="院子" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s2_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[s2_3]" style="room" />
+		<hotspot name="s2_32" style="skin_logo" atv="1.1" ath="69" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s2_2'))" />
+	
+		<hotspot name="s2_3_new" type="text" style="room_css" atv="-2" ath="-56.3" html="小吃街" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s3_5'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[s2_3_new]" style="room" />
+		<hotspot name="s3_2_new" style="skin_logo" atv="2" ath="-56.3" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s3_5'))" />
+
+		<hotspot name="s4_1" type="text" style="room_css" atv="-2.2" ath="-66" html="村委会" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s3_1'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[s4_1]" style="room" />
+		<hotspot name="s4_12" style="skin_logo" atv="1.8" ath="-66" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s3_1'))" />
+		
+		<hotspot name="s4_1_2" type="text" style="room_css" atv="-3" ath="0" html="农家小院" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s4_3'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[s4_1_2]" style="room" />
+		<hotspot name="s4_1_22" style="skin_logo" atv="1" ath="0" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s4_3'))" />
+	
+		<hotspot name="s5_1" type="text" style="room_css" atv="-6.5" ath="32.5" html="一号棚" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s5_3'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[s5_1]" style="room" />
+		<hotspot name="s5_12" style="skin_logo" atv="-2.5" ath="32.5" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s5_3'))" />
+		
+		<hotspot name="s5_1_2" type="text" style="room_css" atv="6" ath="6" html="二号棚" distorted="false" zoom="true" visible="false" enabled="true" onclick="js(LoadScene('s5_2'))"  />
+        <layer align="centertop" x="0" y="20" parent="hotspot[s5_1_2]" style="room" />
+		<hotspot name="s5_1_22" style="skin_logo" atv="10" ath="6" zoom="true" url="images/spot6_gif.png" scale=".6" enabled="true" visible="false"  onloaded="do_crop_animation(128,128, 60);" onclick="js(LoadScene('s5_2'))" />
+		
+		
+		<hotspot name="s6_2_1" style="skin_logo2" atv="7" ath="-132" oy="250" zoom="true" url="images/fuwuzhongx.png" scale="1" enabled="true" visible="false" onclick="js(LoadScene('s6_2_1',true))" />
+		<hotspot name="s6_2_2" style="skin_logo2" atv="13" ath="-38" oy="119.5" zoom="true" url="images/jinru_fuwuzhongx.png" scale="1" enabled="true" visible="false" onclick="js(LoadScene('s6_2_2',true))" />
+		<hotspot name="s6_1_1" style="skin_logo2" atv="6" ath="60.9" oy="191" zoom="true" url="images/nongcun.png" scale="1" enabled="true" visible="false" onclick="js(LoadScene('s6_1_1',true))" />
+		<hotspot name="s6_1_2" style="skin_logo2" atv="22" ath="-77" oy="90" zoom="true" url="images/jinru_nongcun.png" scale="1" enabled="true" visible="false" onclick="js(LoadScene('s6_1_2',true))" />
+	
+	</scene>
+<action name="mytest">
+		screentosphere(mouse.x, mouse.y, toh, tov);
+		jscall(calc('console.log("'+toh+'")'));
+		jscall(calc('console.log("'+tov+'")'));
+	</action>
+	<events 
+		onclick="mytest();"
+	/>
+</krpano>
